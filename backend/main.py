@@ -100,8 +100,13 @@ async def delete_trade(trade_id: int, db: AsyncSession = Depends(get_db)):
 
 # Stock endpoints
 @app.get("/api/stocks", response_model=List[dict])
-async def get_stocks(skip: int = 0, limit: int = 100, db: AsyncSession = Depends(get_db)):
-    """Get KOSPI stocks from database"""
+async def get_stocks(skip: int = 0, limit: int = 5000, db: AsyncSession = Depends(get_db)):
+    """Get KOSPI stocks from database
+
+    Note: limit is set to 5000 to accommodate all KOSPI stocks (~800-900 stocks)
+    TODO: Consider implementing proper pagination or removing limit entirely
+          since KOSPI stock count is relatively small and fixed
+    """
     result = await db.execute(select(Stock).offset(skip).limit(limit))
     stocks = result.scalars().all()
     return [
@@ -112,6 +117,7 @@ async def get_stocks(skip: int = 0, limit: int = 100, db: AsyncSession = Depends
             "base_price": stock.base_price,
             "market_cap": stock.market_cap,
             "roe": stock.roe,
+            "group_code": stock.group_code,
         }
         for stock in stocks
     ]

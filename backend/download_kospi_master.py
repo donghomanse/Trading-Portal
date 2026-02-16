@@ -134,6 +134,7 @@ async def save_to_database(df):
                 standard_code=str(row['표준코드']).strip() if pd.notna(row['표준코드']) else None,
                 name=str(row['한글명']).strip(),
                 market='KOSPI',
+                group_code=str(row['그룹코드']).strip() if pd.notna(row['그룹코드']) else None,
 
                 # 가격 정보
                 base_price=int(row['기준가']) if pd.notna(row['기준가']) and row['기준가'] != '' else None,
@@ -160,6 +161,7 @@ async def save_to_database(df):
                 krx_auto=str(row['KRX자동차']) if pd.notna(row['KRX자동차']) else None,
                 krx300=str(row['KRX300']) if pd.notna(row['KRX300']) else None,
                 kospi=str(row['KOSPI']) if pd.notna(row['KOSPI']) else None,
+                etp=str(row['ETP']) if pd.notna(row['ETP']) else None,
 
                 # 거래 정보
                 margin_rate=int(row['증거금비율']) if pd.notna(row['증거금비율']) and row['증거금비율'] != '' else None,

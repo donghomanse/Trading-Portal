@@ -35,6 +35,7 @@ class Stock(Base):
     standard_code = Column(String(20))  # 표준코드
     name = Column(String(100), nullable=False, index=True)  # 한글명
     market = Column(String(20))  # 시장구분 (KOSPI/KOSDAQ)
+    group_code = Column(String(2))  # 그룹코드 (ST=주식, EF=ETF, BC=수익증권 등)
 
     # 가격 정보
     base_price = Column(Integer)  # 기준가
@@ -61,6 +62,7 @@ class Stock(Base):
     krx_auto = Column(String(1))  # KRX자동차
     krx300 = Column(String(1))  # KRX300
     kospi = Column(String(1))  # KOSPI
+    etp = Column(String(1))  # ETP (ETF/ETN 등)
 
     # 거래 정보
     margin_rate = Column(Integer)  # 증거금비율

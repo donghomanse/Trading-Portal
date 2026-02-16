@@ -8,6 +8,7 @@ function Stocks() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [searchTerm, setSearchTerm] = useState('')
+  const [segment, setSegment] = useState('company') // 'company' or 'all'
   const navigate = useNavigate()
 
   useEffect(() => {
@@ -15,20 +16,29 @@ function Stocks() {
   }, [])
 
   useEffect(() => {
-    if (searchTerm.trim() === '') {
-      setFilteredStocks(stocks)
-    } else {
-      const filtered = stocks.filter(stock =>
+    let filtered = stocks
+
+    // 세그먼트 필터링 (회사 = 그룹코드가 ST)
+    if (segment === 'company') {
+      filtered = filtered.filter(stock => stock.group_code === 'ST')
+    }
+
+    // 검색어 필터링
+    if (searchTerm.trim() !== '') {
+      filtered = filtered.filter(stock =>
         stock.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
         stock.name.toLowerCase().includes(searchTerm.toLowerCase())
       )
-      setFilteredStocks(filtered)
     }
-  }, [searchTerm, stocks])
+
+    setFilteredStocks(filtered)
+  }, [searchTerm, stocks, segment])
 
   const fetchStocks = async () => {
     try {
-      const response = await fetch('/api/stocks?limit=1000')
+      // Fetch all KOSPI stocks (limit set high to get all ~800-900 stocks)
+      // TODO: Consider implementing pagination or infinite scroll for better performance
+      const response = await fetch('/api/stocks?limit=5000')
       if (!response.ok) {
         throw new Error('Failed to fetch stocks')
       }
@@ -76,6 +86,20 @@ function Stocks() {
       </div>
 
       <div className="search-section">
+        <div className="segment-control">
+          <button
+            className={`segment-button ${segment === 'company' ? 'active' : ''}`}
+            onClick={() => setSegment('company')}
+          >
+            회사
+          </button>
+          <button
+            className={`segment-button ${segment === 'all' ? 'active' : ''}`}
+            onClick={() => setSegment('all')}
+          >
+            전체
+          </button>
+        </div>
         <div className="search-box">
           <input
             type="text"
