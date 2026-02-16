@@ -1,6 +1,6 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
 import Home from './pages/Home'
-import Trades from './pages/Trades'
+import Stocks from './pages/Stocks'
 import './App.css'
 
 function App() {
@@ -8,7 +8,7 @@ function App() {
     <Router>
       <Routes>
         <Route path="/" element={<Home />} />
-        <Route path="/trades" element={<Trades />} />
+        <Route path="/stocks" element={<Stocks />} />
       </Routes>
     </Router>
   )
