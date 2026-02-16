@@ -36,6 +36,14 @@ venv/
 *.sqlite
 *.sqlite3
 
+# Stock Master Files
+*.mst
+*.zip
+kospi_code.xlsx
+kospi_code.json
+stock_master.json
+*.tmp
+
 # IDEs
 .vscode/
 .idea/
