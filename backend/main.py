@@ -9,15 +9,20 @@ from typing import List
 from contextlib import asynccontextmanager
 
 from database import get_db, init_db
-from models import Trade
+from models import Trade, Stock
 from schemas import TradeCreate, TradeResponse, TradeUpdate
+from scheduler import start_scheduler, stop_scheduler, run_now, scheduler
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Startup: Initialize database
+    # Startup: Initialize database and start scheduler
     await init_db()
+    start_scheduler()
+    print("[APP] Application started - KOSPI data will be updated daily at 22:00")
     yield
-    # Shutdown: cleanup if needed
+    # Shutdown: cleanup scheduler
+    stop_scheduler()
+    print("[APP] Application stopped")
 
 app = FastAPI(title="Trading Portal API", lifespan=lifespan)
 
@@ -92,6 +97,56 @@ async def delete_trade(trade_id: int, db: AsyncSession = Depends(get_db)):
     await db.delete(trade)
     await db.commit()
     return None
+
+# Stock endpoints
+@app.get("/api/stocks", response_model=List[dict])
+async def get_stocks(skip: int = 0, limit: int = 100, db: AsyncSession = Depends(get_db)):
+    """Get KOSPI stocks from database"""
+    result = await db.execute(select(Stock).offset(skip).limit(limit))
+    stocks = result.scalars().all()
+    return [
+        {
+            "code": stock.code,
+            "name": stock.name,
+            "market": stock.market,
+            "base_price": stock.base_price,
+            "market_cap": stock.market_cap,
+            "roe": stock.roe,
+        }
+        for stock in stocks
+    ]
+
+@app.get("/api/stocks/{code}")
+async def get_stock(code: str, db: AsyncSession = Depends(get_db)):
+    """Get specific stock by code"""
+    result = await db.execute(select(Stock).where(Stock.code == code))
+    stock = result.scalar_one_or_none()
+    if stock is None:
+        raise HTTPException(status_code=404, detail="Stock not found")
+    return stock
+
+# Scheduler endpoints
+@app.post("/api/scheduler/update-kospi")
+async def trigger_kospi_update():
+    """Manually trigger KOSPI master data update"""
+    try:
+        await run_now()
+        return {"status": "success", "message": "KOSPI master data updated successfully"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Update failed: {str(e)}")
+
+@app.get("/api/scheduler/status")
+async def scheduler_status():
+    """Get scheduler status and next run time"""
+    if scheduler.running:
+        job = scheduler.get_job('kospi_master_update')
+        if job:
+            return {
+                "status": "running",
+                "next_run_time": job.next_run_time.isoformat() if job.next_run_time else None,
+                "job_name": job.name
+            }
+    return {"status": "stopped"}
 
 # Serve static files from frontend/dist
 static_dir = Path(__file__).parent.parent / "frontend" / "dist"

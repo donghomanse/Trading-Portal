@@ -5,6 +5,12 @@ import ssl
 import zipfile
 import os
 import pandas as pd
+import asyncio
+from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy import text
+from database import Base, DATABASE_URL
+from models import Stock
 
 base_dir = os.getcwd()
 
@@ -100,6 +106,82 @@ def get_kospi_master_dataframe(base_dir):
     return df
 
 
+async def save_to_database(df):
+    """DataFrame 데이터를 데이터베이스에 저장"""
+    print("[DB] Connecting to database...")
+
+    # 비동기 엔진 생성
+    engine = create_async_engine(DATABASE_URL, echo=False)
+
+    # 테이블 생성
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+
+    # 세션 생성
+    async_session = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
+
+    async with async_session() as session:
+        # 기존 데이터 삭제
+        print("[DB] Clearing existing stock data...")
+        await session.execute(text("DELETE FROM stocks"))
+
+        print("[DB] Inserting stock data...")
+        inserted = 0
+
+        for _, row in df.iterrows():
+            stock = Stock(
+                code=str(row['단축코드']).strip(),
+                standard_code=str(row['표준코드']).strip() if pd.notna(row['표준코드']) else None,
+                name=str(row['한글명']).strip(),
+                market='KOSPI',
+
+                # 가격 정보
+                base_price=int(row['기준가']) if pd.notna(row['기준가']) and row['기준가'] != '' else None,
+                market_cap=float(row['시가총액']) if pd.notna(row['시가총액']) and row['시가총액'] != '' else None,
+
+                # 상장 정보
+                listing_date=str(row['상장일자']) if pd.notna(row['상장일자']) else None,
+                listing_shares=float(row['상장주수']) if pd.notna(row['상장주수']) and row['상장주수'] != '' else None,
+                capital=float(row['자본금']) if pd.notna(row['자본금']) and row['자본금'] != '' else None,
+                par_value=float(row['액면가']) if pd.notna(row['액면가']) and row['액면가'] != '' else None,
+
+                # 재무 정보
+                revenue=float(row['매출액']) if pd.notna(row['매출액']) and row['매출액'] != '' else None,
+                operating_profit=float(row['영업이익']) if pd.notna(row['영업이익']) and row['영업이익'] != '' else None,
+                net_profit=float(row['당기순이익']) if pd.notna(row['당기순이익']) and row['당기순이익'] != '' else None,
+                roe=float(row['ROE']) if pd.notna(row['ROE']) and row['ROE'] != '' else None,
+                fiscal_month=str(row['결산월']) if pd.notna(row['결산월']) else None,
+
+                # KRX 분류
+                krx=str(row['KRX']) if pd.notna(row['KRX']) else None,
+                krx_semiconductor=str(row['KRX반도체']) if pd.notna(row['KRX반도체']) else None,
+                krx_bio=str(row['KRX바이오']) if pd.notna(row['KRX바이오']) else None,
+                krx_banking=str(row['KRX은행']) if pd.notna(row['KRX은행']) else None,
+                krx_auto=str(row['KRX자동차']) if pd.notna(row['KRX자동차']) else None,
+                krx300=str(row['KRX300']) if pd.notna(row['KRX300']) else None,
+                kospi=str(row['KOSPI']) if pd.notna(row['KOSPI']) else None,
+
+                # 거래 정보
+                margin_rate=int(row['증거금비율']) if pd.notna(row['증거금비율']) and row['증거금비율'] != '' else None,
+                credit_available=str(row['신용가능']) if pd.notna(row['신용가능']) else None,
+                suspended=str(row['거래정지']) if pd.notna(row['거래정지']) else None,
+                administered=str(row['관리종목']) if pd.notna(row['관리종목']) else None,
+            )
+            session.add(stock)
+            inserted += 1
+
+            # 100개마다 커밋
+            if inserted % 100 == 0:
+                await session.commit()
+                print(f"[DB] Inserted {inserted} stocks...")
+
+        # 최종 커밋
+        await session.commit()
+        print(f"[DB] Total {inserted} stocks inserted successfully!")
+
+    await engine.dispose()
+
+
 if __name__ == "__main__":
     print("[START] Downloading KOSPI master file...")
     kospi_master_download(base_dir, verbose=True)
@@ -119,10 +201,15 @@ if __name__ == "__main__":
     print("[SAVING] Saving to JSON...")
     df3.to_json('kospi_code.json', orient='records', force_ascii=False, indent=2)
 
+    # 데이터베이스에 저장
+    print("\n[DATABASE] Saving to database...")
+    asyncio.run(save_to_database(df3))
+
     print(f"\n[SUCCESS] KOSPI master file downloaded!")
     print(f"[INFO] Total stocks: {len(df3)}")
     print(f"[INFO] Excel file: {os.path.abspath('kospi_code.xlsx')}")
     print(f"[INFO] JSON file: {os.path.abspath('kospi_code.json')}")
+    print(f"[INFO] Database: stocks table updated")
 
     # 샘플 출력
     print("\n[SAMPLE] First 5 stocks:")
