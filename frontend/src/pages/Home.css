@@ -50,3 +50,49 @@
 .view-trades-button:active {
   transform: translateY(0);
 }
+
+/* Mobile Optimization */
+@media (max-width: 768px) {
+  .home-container {
+    padding: 1rem;
+    min-height: 70vh;
+  }
+
+  .home-container h1 {
+    font-size: 2rem;
+    line-height: 1.2;
+    padding: 0 1rem;
+  }
+
+  .home-content {
+    max-width: 100%;
+    padding: 0 1rem;
+  }
+
+  .home-content p {
+    font-size: 1.1rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .view-trades-button {
+    padding: 0.875rem 1.5rem;
+    font-size: 1.1rem;
+    width: 100%;
+    max-width: 300px;
+  }
+}
+
+@media (max-width: 480px) {
+  .home-container h1 {
+    font-size: 1.75rem;
+  }
+
+  .home-content p {
+    font-size: 1rem;
+  }
+
+  .view-trades-button {
+    padding: 0.75rem 1.25rem;
+    font-size: 1rem;
+  }
+}
