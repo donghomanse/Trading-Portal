@@ -1,12 +1,16 @@
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
+import Home from './pages/Home'
+import Trades from './pages/Trades'
 import './App.css'
 
 function App() {
   return (
-    <>
-      <div>
-        <h1>Welcome to Trading System~!!</h1>
-      </div>
-    </>
+    <Router>
+      <Routes>
+        <Route path="/" element={<Home />} />
+        <Route path="/trades" element={<Trades />} />
+      </Routes>
+    </Router>
   )
 }
 
