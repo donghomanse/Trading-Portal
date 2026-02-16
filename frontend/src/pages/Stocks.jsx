@@ -135,7 +135,11 @@ function Stocks() {
             </thead>
             <tbody>
               {filteredStocks.map((stock) => (
-                <tr key={stock.code} className="stock-row">
+                <tr
+                  key={stock.code}
+                  className="stock-row"
+                  onClick={() => navigate(`/stocks/${stock.code}`)}
+                >
                   <td className="stock-code">{stock.code}</td>
                   <td className="stock-name">{stock.name}</td>
                 </tr>
