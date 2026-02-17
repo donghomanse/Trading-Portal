@@ -10,7 +10,8 @@ from contextlib import asynccontextmanager
 
 from database import get_db, init_db
 from models import Trade, Stock
-from schemas import TradeCreate, TradeResponse, TradeUpdate
+from schemas import TradeCreate, TradeResponse, TradeUpdate, StockPriceResponse
+from kis_client import get_stock_price, KISAPIError
 from scheduler import start_scheduler, stop_scheduler, run_now, scheduler
 
 @asynccontextmanager
@@ -130,6 +131,22 @@ async def get_stock(code: str, db: AsyncSession = Depends(get_db)):
     if stock is None:
         raise HTTPException(status_code=404, detail="Stock not found")
     return stock
+
+@app.get("/api/stocks/{code}/price", response_model=StockPriceResponse)
+async def get_stock_price_endpoint(code: str, db: AsyncSession = Depends(get_db)):
+    """주식 현재가 시세 조회 (KIS Open API)"""
+    result = await db.execute(select(Stock).where(Stock.code == code))
+    stock = result.scalar_one_or_none()
+    if stock is None:
+        raise HTTPException(status_code=404, detail="Stock not found")
+
+    try:
+        kis_output = await get_stock_price(code)
+        return StockPriceResponse.from_kis_output(kis_output)
+    except KISAPIError as e:
+        raise HTTPException(status_code=502, detail=f"KIS API error: {e.message}")
+    except Exception as e:
+        raise HTTPException(status_code=503, detail=f"Failed to fetch price data: {str(e)}")
 
 # Scheduler endpoints
 @app.post("/api/scheduler/update-kospi")

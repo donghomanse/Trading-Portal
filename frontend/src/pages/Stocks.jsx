@@ -10,6 +10,7 @@ function Stocks() {
   const [searchTerm, setSearchTerm] = useState('')
   const [segment, setSegment] = useState('company') // 'company' or 'all'
   const [refreshing, setRefreshing] = useState(false)
+  const [selectedStock, setSelectedStock] = useState(null) // 모달용
   const navigate = useNavigate()
 
   useEffect(() => {
@@ -164,7 +165,7 @@ function Stocks() {
                 <tr
                   key={stock.code}
                   className="stock-row"
-                  onClick={() => navigate(`/stocks/${stock.code}`)}
+                  onClick={() => setSelectedStock(stock)}
                 >
                   <td className="stock-code">{stock.code}</td>
                   <td className="stock-name">{stock.name}</td>
@@ -172,6 +173,42 @@ function Stocks() {
               ))}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {selectedStock && (
+        <div className="modal-overlay" onClick={() => setSelectedStock(null)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>{selectedStock.name}</h3>
+              <span className="modal-code">{selectedStock.code}</span>
+            </div>
+            <div className="modal-body">
+              <button
+                className="modal-option"
+                onClick={() => {
+                  setSelectedStock(null)
+                  navigate(`/stocks/${selectedStock.code}`)
+                }}
+              >
+                <div className="option-title">Static Data</div>
+                <div className="option-desc">KOSPI 마스터 데이터 (기준가, 시가총액, ROE 등)</div>
+              </button>
+              <button
+                className="modal-option realtime"
+                onClick={() => {
+                  setSelectedStock(null)
+                  navigate(`/stocks/${selectedStock.code}/realtime`)
+                }}
+              >
+                <div className="option-title">Real Time Data</div>
+                <div className="option-desc">실시간 현재가, 등락률, 거래량 등 (KIS API)</div>
+              </button>
+            </div>
+            <button className="modal-close" onClick={() => setSelectedStock(null)}>
+              닫기
+            </button>
+          </div>
         </div>
       )}
     </div>
