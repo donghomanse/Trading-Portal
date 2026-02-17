@@ -9,6 +9,7 @@ function Stocks() {
   const [error, setError] = useState(null)
   const [searchTerm, setSearchTerm] = useState('')
   const [segment, setSegment] = useState('company') // 'company' or 'all'
+  const [refreshing, setRefreshing] = useState(false)
   const navigate = useNavigate()
 
   useEffect(() => {
@@ -60,6 +61,21 @@ function Stocks() {
     setSearchTerm('')
   }
 
+  const handleRefresh = async () => {
+    setRefreshing(true)
+    try {
+      const response = await fetch('/api/scheduler/update-kospi', { method: 'POST' })
+      if (!response.ok) {
+        throw new Error('KOSPI 데이터 업데이트에 실패했습니다')
+      }
+      await fetchStocks()
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setRefreshing(false)
+    }
+  }
+
   if (loading) {
     return (
       <div className="stocks-container">
@@ -86,18 +102,28 @@ function Stocks() {
       </div>
 
       <div className="search-section">
-        <div className="segment-control">
+        <div className="segment-row">
+          <div className="segment-control">
+            <button
+              className={`segment-button ${segment === 'company' ? 'active' : ''}`}
+              onClick={() => setSegment('company')}
+            >
+              회사
+            </button>
+            <button
+              className={`segment-button ${segment === 'all' ? 'active' : ''}`}
+              onClick={() => setSegment('all')}
+            >
+              전체
+            </button>
+          </div>
           <button
-            className={`segment-button ${segment === 'company' ? 'active' : ''}`}
-            onClick={() => setSegment('company')}
+            className={`refresh-icon-button${refreshing ? ' spinning' : ''}`}
+            onClick={handleRefresh}
+            disabled={refreshing}
+            title="KOSPI 데이터 새로고침"
           >
-            회사
-          </button>
-          <button
-            className={`segment-button ${segment === 'all' ? 'active' : ''}`}
-            onClick={() => setSegment('all')}
-          >
-            전체
+🔄
           </button>
         </div>
         <div className="search-box">
